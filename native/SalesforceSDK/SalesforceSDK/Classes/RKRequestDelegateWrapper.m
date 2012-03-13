@@ -42,9 +42,15 @@ static NSString * const kSFRestAPIPathPrefix = @"/services/data";
 
 @end
 
-@implementation RKRequestDelegateWrapper
+@implementation RKRequestDelegateWrapper {
+@private
+    RKRequest *_rkRequest;
+}
+
 
 @synthesize request=_request;
+@synthesize rkRequest = _rkRequest;
+
 
 #pragma mark - init/setup
 
@@ -63,6 +69,7 @@ static NSString * const kSFRestAPIPathPrefix = @"/services/data";
 
 - (void)dealloc {
     self.request = nil;
+    [_rkRequest release];
     [super dealloc];
 }
 
@@ -83,22 +90,24 @@ static NSString * const kSFRestAPIPathPrefix = @"/services/data";
     }
     NSString *url = requestPath;
     SFOAuthCoordinator *coord = [SFRestAPI sharedInstance].coordinator;
-    
+
+    RKRequest *rkRequest = nil;
+
     //make sure we have the latest access token at the moment we send the request
     [rkClient setValue:[NSString stringWithFormat:@"OAuth %@", coord.credentials.accessToken] 
          forHTTPHeaderField:@"Authorization"];
     
     if (_request.method == SFRestMethodGET) {
-        [rkClient get:url queryParameters:_request.queryParams delegate:self];
+        rkRequest = [rkClient get:url queryParameters:_request.queryParams delegate:self];
     }
     else if (_request.method == SFRestMethodDELETE) {
-        [rkClient delete:url delegate:self];
+        rkRequest = [rkClient delete:url delegate:self];
     }
     else if (_request.method == SFRestMethodPUT) {
-        [rkClient put:url params:[[self class] formatParamsAsJson:_request.queryParams] delegate:self];
+        rkRequest = [rkClient put:url params:[[self class] formatParamsAsJson:_request.queryParams] delegate:self];
     }
     else if (_request.method == SFRestMethodPOST) {
-        [rkClient post:url params:[[self class] formatParamsAsJson:_request.queryParams] delegate:self];
+        rkRequest = [rkClient post:url params:[[self class] formatParamsAsJson:_request.queryParams] delegate:self];
     }
     else if (_request.method == SFRestMethodPATCH) {
         // PATCH is not fully supported yet so using POST instead
@@ -106,11 +115,11 @@ static NSString * const kSFRestAPIPathPrefix = @"/services/data";
                                ? @"?"
                                : @"&");
         NSString *newUrl = [NSString stringWithFormat:@"%@%@_HttpMethod=PATCH", url, delimiter];
-        [rkClient post:newUrl params:[[self class] formatParamsAsJson:_request.queryParams] delegate:self];
+        rkRequest = [rkClient post:newUrl params:[[self class] formatParamsAsJson:_request.queryParams] delegate:self];
     }
 
     //Note: requests are now retained by the SFRestAPI in the activeRequests list
-
+    self.rkRequest = rkRequest;
 }
 
 #pragma mark - RKRequestDelegate
@@ -172,6 +181,8 @@ static NSString * const kSFRestAPIPathPrefix = @"/services/data";
     [[SFRestAPI sharedInstance] removeActiveRequestObject:self];
 }
 
-
+- (void)cancel {
+    [self.rkRequest.queue cancelRequest:self.rkRequest];
+}
 
 @end

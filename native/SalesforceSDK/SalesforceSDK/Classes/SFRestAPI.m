@@ -46,13 +46,19 @@ static dispatch_once_t _sharedInstanceGuard;
 - (NSString *)userAgentString;
 @end
 
-@implementation SFRestAPI
+@implementation SFRestAPI {
+@private
+    BOOL _verboseLogging;
+}
+
 
 @synthesize coordinator=_coordinator;
 @synthesize apiVersion=_apiVersion;
 @synthesize rkClient=_rkClient;
 @synthesize activeRequests=_activeRequests;
 @synthesize sessionRefresher = _sessionRefresher;
+@synthesize verboseLogging = _verboseLogging;
+
 
 #pragma mark - init/setup
 
@@ -62,6 +68,7 @@ static dispatch_once_t _sharedInstanceGuard;
         _activeRequests = [[NSMutableSet alloc] initWithCapacity:4];
         _sessionRefresher = [[SFSessionRefresher alloc] init];
         self.apiVersion = kSFRestDefaultAPIVersion;
+        self.verboseLogging = NO;
         
         //note that rkClient is initially nil until we get a coordinator set
     }
@@ -98,6 +105,25 @@ static dispatch_once_t _sharedInstanceGuard;
 }
 
 #pragma mark - Internal
+
+- (void)cancelRequest:(SFRestRequest *)request {
+    RKRequestDelegateWrapper *wrapper = nil;
+    if (request) {
+        for(RKRequestDelegateWrapper *possibleWrapper in self.activeRequests) {
+            if (possibleWrapper.request == request) {
+                wrapper = possibleWrapper;
+                break;
+            }
+        }
+    }
+
+    if (wrapper) {
+        [wrapper cancel];
+    }
+    else {
+        NSLog(@"Tried to cancel a request but no wrapper was found for the request. This is weird...? Get a coffe.");
+    }
+}
 
 - (void)removeActiveRequestObject:(RKRequestDelegateWrapper *)request {
     [self.activeRequests removeObject:request]; //this will typically release the request
@@ -182,7 +208,9 @@ static dispatch_once_t _sharedInstanceGuard;
 #pragma mark - ajax methods
 
 - (void)send:(SFRestRequest *)request delegate:(id<SFRestDelegate>)delegate {
-    NSLog(@"SFRestAPI::send:delegate: %@", request);
+    if (self.verboseLogging) {
+        NSLog(@"SFRestAPI::send:delegate: %@", request);
+    }
 
     if (nil != delegate) {
         request.delegate = delegate;

@@ -178,6 +178,7 @@ extern NSString* const kSFRestDefaultAPIVersion;
     NSString *_apiVersion;
 }
 
+@property(nonatomic) BOOL verboseLogging;
 @property (nonatomic, retain) SFOAuthCoordinator *coordinator;
 @property (nonatomic, retain) RKClient *rkClient;
 
@@ -194,6 +195,10 @@ extern NSString* const kSFRestDefaultAPIVersion;
  */
 + (SFRestAPI *)sharedInstance;
 
+/**
+* Will cancel given request.
+*/
+- (void)cancelRequest:(SFRestRequest *)request;
 
 /**
  * Sends a REST request to the Salesforce server and invokes the appropriate delegate method.

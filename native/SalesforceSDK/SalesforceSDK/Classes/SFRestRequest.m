@@ -64,6 +64,6 @@
         case SFRestMethodHEAD: methodName = @"HEAD"; break;
         case SFRestMethodPATCH: methodName = @"PATCH"; break;
     }
-    return [NSString stringWithFormat:@"[<SFRestRequest> method: %@, path: %@, queryParams: %@]", methodName, _path, [_queryParams JSONRepresentation]];
+    return [NSString stringWithFormat:@"[%@ method: %@, path: %@, queryParams: %@]", [super description], methodName, _path, [_queryParams JSONRepresentation]];
 }
 @end

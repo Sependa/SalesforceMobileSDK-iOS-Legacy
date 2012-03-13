@@ -34,8 +34,11 @@
 
 @property (nonatomic, retain) SFRestRequest *request;
 
+@property(nonatomic, retain) RKRequest *rkRequest;
+
 + (id)wrapperWithRequest:(SFRestRequest *)request;
 
 - (void)send;
+- (void)cancel;
 
 @end
