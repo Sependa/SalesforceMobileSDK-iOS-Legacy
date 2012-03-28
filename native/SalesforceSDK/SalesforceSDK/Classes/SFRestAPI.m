@@ -118,6 +118,7 @@ static dispatch_once_t _sharedInstanceGuard;
     }
 
     if (wrapper) {
+        [[wrapper retain] autorelease];
         [wrapper cancel];
     }
     else {
