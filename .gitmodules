@@ -9,4 +9,4 @@
 	url = https://github.com/forcedotcom/SalesforceMobileSDK-Shared.git
 [submodule "external/RestKit/RestKit"]
 	path = external/RestKit/RestKit
-	url = https://github.com/forcedotcom/RestKit.git
+url=git@github.com:Taptera/RestKit-Salesforce.git
