@@ -27,8 +27,7 @@
 #import "RKRequestDelegateWrapper.h"
 #import "RKReachabilityObserver.h"
 #import "RestKit.h"
-#import "SBJSON.h"
-#import "SBJsonParser.h"
+#import "SFJsonUtils.h"
 #import "SFOAuthCoordinator.h"
 #import "SFOAuthCredentials.h"
 #import "SFRestAPI+Internal.h"
@@ -36,7 +35,7 @@
 #import "TestRequestListener.h"
 #import "TestSetupUtils.h"
 #import "SFRestAPI+Blocks.h"
-
+#import "SFRestAPI+QueryBuilder.h"
 
 @interface SalesforceSDKTests (Private)
 - (NSString *)sendSyncRequest:(SFRestRequest *)request;
@@ -118,10 +117,18 @@
 // simple: make sure fully-defined paths in the request are honored too.
 - (void)testFullRequestPath {
     SFRestRequest* request = [[SFRestAPI sharedInstance] requestForResources];
-    request.path = [NSString stringWithFormat:@"%@%@", @"/services/data", request.path];
+    request.path = [NSString stringWithFormat:@"%@%@", kSFDefaultRestEndpoint, request.path];
     NSLog(@"request.path: %@", request.path);
     [self sendSyncRequest:request];
     STAssertEqualObjects(_requestListener.returnStatus, kTestRequestStatusDidLoad, @"request failed");
+}
+
+// simple: make sure that user-defined endpoints are respected
+- (void)testUserDefinedEndpoint {
+    SFRestRequest* request = [[SFRestAPI sharedInstance] requestForResources];
+    [request setEndpoint:@"/my/custom/endpoint"];
+    [self sendSyncRequest:request];
+    STAssertEqualObjects(_requestListener.returnStatus, kTestRequestStatusDidFail, @"request should have failed");
 }
 
 // simple: just invoke requestForResources
@@ -632,16 +639,23 @@
 
 #pragma mark - testing block functions
 
+// A success block that expects a non-nil response
 #define DICT_SUCCESS_BLOCK(testName) ^(NSDictionary *d) { \
 _blocksUncompletedCount--; \
 STAssertNotNil( d, [NSString stringWithFormat:@"%@ success block did not include a valid response.",testName]); \
 }
 
+// A success block that expects a nil response
 #define EMPTY_SUCCESS_BLOCK(testName) ^(NSDictionary *d) { \
 _blocksUncompletedCount--; \
 STAssertNil( d, [NSString stringWithFormat:@"%@ success block should have included nil response.",testName]); \
 }
 
+// A fail block that should not have failed
+#define UNEXPECTED_ERROR_BLOCK(testName) ^(NSError *e) { \
+_blocksUncompletedCount--; \
+STAssertNil( e, [NSString stringWithFormat:@"%@ errored but should not have. Error: %@",testName,e]); \
+}
 
 - (BOOL)waitForAllBlockCompletions {
     NSDate *startTime = [NSDate date] ;
@@ -670,11 +684,6 @@ STAssertNil( d, [NSString stringWithFormat:@"%@ success block should have includ
 - (void)testBlockUpdate {
     _blocksUncompletedCount = 0;
     SFRestAPI *api = [SFRestAPI sharedInstance];
-    // A fail block that should not have failed
-    SFRestFailBlock failWithUnexpectedFail = ^(NSError *e) {
-        _blocksUncompletedCount--;
-        STAssertNil( e, @"Failure block errored but should not have.");
-    };
     
     NSString *lastName = [NSString stringWithFormat:@"Doe-BLOCK-%@", [NSDate date]];
     NSString *updatedLastName = [lastName stringByAppendingString:@"xyz"];
@@ -685,43 +694,54 @@ STAssertNil( d, [NSString stringWithFormat:@"%@ success block should have includ
     
     [api performCreateWithObjectType:@"Contact"
                               fields:fields
-                           failBlock:failWithUnexpectedFail
+                           failBlock:UNEXPECTED_ERROR_BLOCK(@"performCreateWithObjectType")
                        completeBlock:^(NSDictionary *d) {
                            _blocksUncompletedCount--;
                            NSString *recordId = [[d objectForKey:@"id"] retain];
                            
-                           [fields setObject:updatedLastName forKey:@"LastName"];
-                           
+                           NSLog(@"Retrieving Contact: %@",recordId);
                            [api performRetrieveWithObjectType:@"Contact"
                                                      objectId:recordId
-                                                    fieldList:[NSArray arrayWithObject:@"id"]
-                                                    failBlock:failWithUnexpectedFail
+                                                    fieldList:[NSArray arrayWithObject:@"LastName"]
+                                                    failBlock:UNEXPECTED_ERROR_BLOCK(@"performRetrieveWithObjectType")
                                                 completeBlock:DICT_SUCCESS_BLOCK(@"performRetrieveWithObjectType")
                             ];
                            _blocksUncompletedCount++;
                            
+
+
+                           NSLog(@"Updating LastName for recordId: %@",recordId);
+                           [fields setObject:updatedLastName forKey:@"LastName"];
+
                            [api performUpdateWithObjectType:@"Contact"
                                                    objectId:recordId
                                                      fields:fields
-                                                  failBlock:failWithUnexpectedFail
+                                                  failBlock:UNEXPECTED_ERROR_BLOCK(@"performUpdateWithObjectType")
                                               completeBlock:EMPTY_SUCCESS_BLOCK(@"performUpdateWithObjectType")
                             ];
                            _blocksUncompletedCount++;
                            
+                           //Note: this performUpsertWithObjectType test requires that your test user credentials
+                           //have proper permissions, otherwise you will get "insufficient access rights on cross-reference id"
+                           NSLog(@"Reverting LastName for recordId: %@",recordId);
                            [fields setObject:lastName forKey:@"LastName"];
-                           
                            [api performUpsertWithObjectType:@"Contact"
                                             externalIdField:@"Id"
                                                  externalId:recordId
                                                      fields:fields
-                                                  failBlock:failWithUnexpectedFail
+                                                  failBlock:UNEXPECTED_ERROR_BLOCK(@"performUpsertWithObjectType")
                                               completeBlock:EMPTY_SUCCESS_BLOCK(@"performUpsertWithObjectType")
                             ];
                            _blocksUncompletedCount++;
                            
+                           //need to wait until all updates of record complete before deleting record,
+                           //since these operations sometimes complete out-of-order (flapper)
+                           BOOL updatesTimedOut = [self waitForAllBlockCompletions];
+                           STAssertTrue(!updatesTimedOut, @"Timed out waiting for blocks completion");
+
                            [api performDeleteWithObjectType:@"Contact"
                                                    objectId:recordId
-                                                  failBlock:failWithUnexpectedFail
+                                                  failBlock:UNEXPECTED_ERROR_BLOCK(@"performDeleteWithObjectType")
                                               completeBlock:EMPTY_SUCCESS_BLOCK(@"performDeleteWithObjectType")
                             ];
                            _blocksUncompletedCount++;
@@ -909,6 +929,66 @@ STAssertNil( d, [NSString stringWithFormat:@"%@ success block should have includ
     
     //this cleans up the singleton RKClient
     [[[RKClient sharedClient] requestQueue] cancelAllRequests];
+}
+
+#pragma mark - queryBuilder tests
+
+- (void) testSOQL {
+
+    STAssertNil( [SFRestAPI SOQLQueryWithFields:nil sObject:nil where:nil limit:0],
+                @"Invalid query did not result in nil output.");
+    
+    STAssertNil( [SFRestAPI SOQLQueryWithFields:[NSArray arrayWithObject:@"Id"] sObject:nil where:nil limit:0],
+                @"Invalid query did not result in nil output.");
+    
+    NSString *simpleQuery = @"select id from Lead where id<>null limit 10";
+    NSString *complexQuery = @"select id,status from Lead where id<>null group by status limit 10";
+    
+    STAssertTrue( [simpleQuery isEqualToString:
+                        [SFRestAPI SOQLQueryWithFields:[NSArray arrayWithObject:@"id"]
+                                               sObject:@"Lead"
+                                                 where:@"id<>null"
+                                                 limit:10]],                 
+                 @"Simple SOQL query does not match.");
+    
+    
+    NSString *generatedComplexQuery = [SFRestAPI SOQLQueryWithFields:[NSArray arrayWithObjects:@"id", @"status", nil]
+                                                             sObject:@"Lead"
+                                                               where:@"id<>null"
+                                                             groupBy:[NSArray arrayWithObject:@"status"]
+                                                              having:nil
+                                                             orderBy:nil
+                                                               limit:10];
+    
+    STAssertTrue( [complexQuery isEqualToString:generatedComplexQuery],
+                 @"Complex SOQL query does not match.");
+}
+
+- (void) testSOSL {
+    
+    STAssertNil( [SFRestAPI SOSLSearchWithSearchTerm:nil objectScope:nil],
+                 @"Invalid search did not result in nil output.");
+    
+    BOOL searchLimitEnforced = [[SFRestAPI SOSLSearchWithSearchTerm:@"Test Term" fieldScope:nil objectScope:nil limit:kMaxSOSLSearchLimit + 1] 
+                                hasSuffix:[NSString stringWithFormat:@"%i", kMaxSOSLSearchLimit]];
+    
+    STAssertTrue( searchLimitEnforced,
+                 @"SOSL search limit was not properly enforced.");
+    
+    NSString *simpleSearch = @"FIND {blah} IN NAME FIELDS RETURNING User";
+    NSString *complexSearch = @"FIND {blah} IN NAME FIELDS RETURNING User (id, name order by lastname asc limit 5) LIMIT 200";
+    
+    STAssertTrue( [simpleSearch isEqualToString:[SFRestAPI SOSLSearchWithSearchTerm:@"blah"
+                                                                        objectScope:[NSDictionary dictionaryWithObject:[NSNull null]
+                                                                                                                forKey:@"User"]]],
+                 @"Simple SOSL search does not match.");    
+    
+    STAssertTrue( [complexSearch isEqualToString:[SFRestAPI SOSLSearchWithSearchTerm:@"blah"
+                                                                          fieldScope:nil
+                                                                         objectScope:[NSDictionary dictionaryWithObject:@"id, name order by lastname asc limit 5"
+                                                                                                                 forKey:@"User"]
+                                                                               limit:200]],
+                 @"Complex SOSL search does not match.");
 }
 
 @end

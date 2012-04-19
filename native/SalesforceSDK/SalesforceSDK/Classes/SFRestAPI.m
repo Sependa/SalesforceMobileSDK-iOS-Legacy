@@ -26,12 +26,12 @@
 
 #import "RKRequestDelegateWrapper.h"
 #import "RestKit.h"
-#import "SBJson.h"
+#import "SFJsonUtils.h"
 #import "SFOAuthCoordinator.h"
 #import "SFRestRequest.h"
 #import "SFSessionRefresher.h"
 
-static NSString * const kSFMobileSDKVersion = @"1.0.3";
+static NSString * const kSFMobileSDKVersion = @"1.1.4";
 NSString* const kSFRestDefaultAPIVersion = @"v23.0";
 NSString* const kSFRestErrorDomain = @"com.salesforce.RestAPI.ErrorDomain";
 NSInteger const kSFRestErrorCode = 999;
@@ -43,7 +43,6 @@ static dispatch_once_t _sharedInstanceGuard;
 
 @interface SFRestAPI (private)
 - (id)initWithCoordinator:(SFOAuthCoordinator *)coordinator;
-- (NSString *)userAgentString;
 @end
 
 @implementation SFRestAPI {
@@ -160,7 +159,7 @@ static dispatch_once_t _sharedInstanceGuard;
             _rkClient = [[RKClient alloc] initWithBaseURL:_coordinator.credentials.instanceUrl];
             _rkClient.cachePolicy = RKRequestCachePolicyNone;
             [_rkClient setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-            [_rkClient setValue:[self userAgentString] forHTTPHeaderField:@"User-Agent"];
+            [_rkClient setValue:[[self class] userAgentString] forHTTPHeaderField:@"User-Agent"];
 
             //Authorization header (access token) is now set the moment before we actually send the request
         }
@@ -173,12 +172,13 @@ static dispatch_once_t _sharedInstanceGuard;
     if (![coordinator isEqual:_coordinator]) {
         [_coordinator release];
         _coordinator = [coordinator retain];
-        self.rkClient = nil; //clear restkit since auth may have changed
-        
-        if (nil != _coordinator) {
-            [self rkClient]; //touch to instantiate if needed
-        } 
     }
+    
+    if (nil != _coordinator) {
+        //touch rkClient to instantiate if needed, AND update the base url
+        RKURL *freshBaseUrl = [RKURL URLWithBaseURL:_coordinator.credentials.instanceUrl];
+        [[self rkClient] setBaseURL:freshBaseUrl]; 
+    } 
 }
 
 
@@ -187,7 +187,7 @@ static dispatch_once_t _sharedInstanceGuard;
  We are building a user agent of the form:
  SalesforceMobileSDK/1.0 iPhone OS/3.2.0 (iPad) AppName/AppVersion
  */
-- (NSString *)userAgentString {
++ (NSString *)userAgentString {
     UIDevice *curDevice = [UIDevice currentDevice];
     NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString*)kCFBundleNameKey];
     NSString *appVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString*)kCFBundleVersionKey];
@@ -210,7 +210,7 @@ static dispatch_once_t _sharedInstanceGuard;
 
 - (void)send:(SFRestRequest *)request delegate:(id<SFRestDelegate>)delegate {
     if (self.verboseLogging) {
-        NSLog(@"SFRestAPI::send:delegate: %@", request);
+        NSLog(@"SFRestAPI::send: %@", request);
     }
 
     if (nil != delegate) {

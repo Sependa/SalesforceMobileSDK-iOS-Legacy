@@ -25,7 +25,7 @@
 #import "RKRequestDelegateWrapper.h"
 
 #import "RKResponse.h"
-#import "SBJson.h"
+#import "SFJsonUtils.h"
 #import "SFRestRequest.h"
 #import "SFRestAPI+Internal.h"
 #import "SFOAuthCoordinator.h"
@@ -34,7 +34,6 @@
 
 #define KEY_ERROR_CODE @"errorCode"
 
-static NSString * const kSFRestAPIPathPrefix = @"/services/data";
 
 @interface RKRequestDelegateWrapper (private)
 + (NSObject<RKRequestSerializable>*)formatParamsAsJson:(NSDictionary *)queryParams;
@@ -78,17 +77,17 @@ static NSString * const kSFRestAPIPathPrefix = @"/services/data";
 + (NSObject<RKRequestSerializable>*)formatParamsAsJson:(NSDictionary *)queryParams {
     if (!([queryParams count] > 0))
         return nil;
-    NSData *data = [[queryParams JSONRepresentation] dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *data = [SFJsonUtils JSONDataRepresentation:queryParams];
     return [RKRequestSerialization serializationWithData:data MIMEType:@"application/json"];
 }
 
 - (void)send {
     RKClient *rkClient = [SFRestAPI sharedInstance].rkClient;
-    NSString *requestPath = [NSString stringWithString:_request.path];
-    if (![requestPath hasPrefix:kSFRestAPIPathPrefix]) {
-        requestPath = [NSString stringWithFormat:@"%@%@", kSFRestAPIPathPrefix, requestPath];
+    NSString *url = [NSString stringWithString:_request.path];
+    NSString *reqEndpoint = _request.endpoint;
+    if (![url hasPrefix:reqEndpoint]) {
+        url = [NSString stringWithFormat:@"%@%@", reqEndpoint, url];
     }
-    NSString *url = requestPath;
     SFOAuthCoordinator *coord = [SFRestAPI sharedInstance].coordinator;
 
     RKRequest *rkRequest = nil;
@@ -132,9 +131,9 @@ static NSString * const kSFRestAPIPathPrefix = @"/services/data";
         return;
     }
 
-    //TODO use builtin json framework if available?
-    SBJsonParser *parser = [[[SBJsonParser alloc] init] autorelease];
-    id jsonResponse = [parser objectWithData:response.body];
+    NSError *error = nil;
+    id jsonResponse = [SFJsonUtils objectFromJSONData:response.body];
+    
     if ([jsonResponse isKindOfClass:[NSArray class]]) {
         if ([jsonResponse count] == 1) {
             id potentialError = [jsonResponse objectAtIndex:0];
@@ -142,17 +141,24 @@ static NSString * const kSFRestAPIPathPrefix = @"/services/data";
                 NSString *potentialErrorCode = [potentialError objectForKey:KEY_ERROR_CODE];
                 if (nil != potentialErrorCode) {
                     // we have an error
-                    NSError *error = [NSError errorWithDomain:kSFRestErrorDomain code:kSFRestErrorCode userInfo:potentialError];
+                    error = [NSError errorWithDomain:kSFRestErrorDomain code:kSFRestErrorCode userInfo:potentialError];
                     [self request:request didFailLoadWithError:error];
                     return;
                 }
             }
         }
-
-
-    }
-
-    if ([self.request.delegate respondsToSelector:@selector(request:didLoadResponse:)]) {
+    } else if (![response isSuccessful]) {
+        NSInteger respCode = [response statusCode];
+        NSDictionary *errorInfo = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                                   [[response request] URL] ,NSURLErrorFailingURLErrorKey,
+                                   nil];
+        
+        error = [NSError errorWithDomain:NSURLErrorDomain code:respCode userInfo:errorInfo];
+        [self request:request didFailLoadWithError:error];
+        }
+    
+    if ((nil == error) &&
+        ([self.request.delegate respondsToSelector:@selector(request:didLoadResponse:)])) {
         [self.request.delegate request:_request didLoadResponse:jsonResponse];
     }
     [[SFRestAPI sharedInstance] removeActiveRequestObject:self];
