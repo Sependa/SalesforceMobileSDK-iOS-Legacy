@@ -31,10 +31,11 @@
 #import "SFRestRequest.h"
 #import "SFSessionRefresher.h"
 
-static NSString * const kSFMobileSDKVersion = @"1.1.4";
+static NSString * const kSFMobileSDKVersion = @"1.2.3";
 NSString* const kSFRestDefaultAPIVersion = @"v23.0";
 NSString* const kSFRestErrorDomain = @"com.salesforce.RestAPI.ErrorDomain";
 NSInteger const kSFRestErrorCode = 999;
+NSString * const kSFMobileSDKNativeDesignator = @"Native";
 
 
 // singleton instance
@@ -193,13 +194,14 @@ static dispatch_once_t _sharedInstanceGuard;
     NSString *appVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString*)kCFBundleVersionKey];
     
     NSString *myUserAgent = [NSString stringWithFormat:
-                             @"SalesforceMobileSDK/%@ %@/%@ (%@) %@/%@",
+                             @"SalesforceMobileSDK/%@ %@/%@ (%@) %@/%@ %@",
                              kSFMobileSDKVersion,
                              [curDevice systemName],
                              [curDevice systemVersion],
                              [curDevice model],
                              appName,
-                             appVersion
+                             appVersion,
+                             kSFMobileSDKNativeDesignator
                              ];
     
     return myUserAgent;

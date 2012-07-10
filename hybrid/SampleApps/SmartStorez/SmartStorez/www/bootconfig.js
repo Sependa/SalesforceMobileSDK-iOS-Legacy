@@ -17,7 +17,7 @@ var remoteAccessConsumerKey = "3MVG9Iu66FKeHhINkB1l7xt7kR8czFcCTUhgoA8Ol2Ltf1eYH
 var oauthRedirectURI = "testsfdc:///mobilesdk/detect/oauth/done";
 
 // The authorization/access scope(s) you wish to define for your application.
-var oauthScopes = ["visualforce","api"];
+var oauthScopes = ["web","api"];
 
 // The start data associated with the application.  Use SFHybridApp.LocalAppStartData for a "local"
 // PhoneGap-based application, and SFHybridApp.RemoteAppStartData for a Visualforce-based
@@ -27,10 +27,11 @@ var startData = new SFHybridApp.LocalAppStartData();  // Used for local REST-bas
 //var startData = new SFHybridApp.RemoteAppStartData("/apex/BasicVFPage"); // Used for Visualforce-based apps.
 
 
-// Whether the container app should automatically refresh our oauth session on app foreground:
-// generally a good idea.
+// Whether the container app should automatically refresh our oauth session on app foreground
 var autoRefreshOnForeground = true; 
     
+// Whether the container app should automatically refresh our oauth session periodically
+var autoRefreshPeriodically = false;//rest-based apps automatically refresh when needed
 
 //-----------------------------------------------------------------
 // End configuration block
