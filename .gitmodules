@@ -3,7 +3,7 @@
 	url = https://github.com/forcedotcom/callback-ios.git
 [submodule "external/RestKit/RestKit"]
 	path = external/RestKit/RestKit
-	url = https://github.com/Taptera/RestKit.git
+	url = git@github.com:Taptera/RestKit.git
 [submodule "external/fmdb/fmdb"]
 	path = external/fmdb/fmdb
 	url = https://github.com/forcedotcom/fmdb.git
