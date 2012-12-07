@@ -7,6 +7,18 @@ After cloning the SalesforceMobileSDK-iOS project from github, run the install s
 This pulls submodule dependencies from github, and builds all the library files you will need.  It also installs Xcode project templates in the default Xcode template location.
 See the setup.md file for additional instructions. Xcode 4.2 or greater is a prerequisite for building the Salesforce Mobile SDK.  install.sh will check for this, and exit if the installed version of Xcode is incorrect. In addition, the Salesforce Mobile SDK requires iOS 5.0 or greater.  Building from the command line has been tested using ant 1.8.  Older versions may work, but we recommend using the latest version of ant.
 
+**Users of Xcode earlier than 4.5 (iOS 6):** The iOS 6 development environment introduces a new processor architecture (armv7s), while removing support for another (armv6).  This makes libraries built for iOS 6 incompatible with earlier Xcode dev environments, without some further steps on the developer's part.
+
+We have updated our libraries to support iOS 6.  If you do not want to update your Xcode environment to 4.5 yet, you'll need to remove support for armv6 (if it exists) in the SalesforceHybridSDK project (hybrid/SalesforceHybridSDK/SalesforceHybridSDK.xcodeproj), as well as your app's project configuration:
+
+1. In Xcode, click on the Project at the top of the Project Navigator view.
+2. Under the Project header, click the project/app name.
+3. Select the Build Settings tab.
+4. In the Architectures section at the top, if **armv6** is not listed in Valid Architectures, there are no further actions on your part.  Otherwise, double-click the "armv6 armv7" option in Valid Architectures.
+5. Click on the armv6 item in the list, then click the '-' button at the bottom of the list.
+
+You should now be compatible with the iOS 6 library builds.  Note that you're not losing anything by removing support for armv6 anyway, as that class of devices was never compatible with iOS 5, our baseline supported iOS SDK in the Salesforce Mobile SDK.
+
 **Xcode 4.3 Users:** If you have not used the `xcode-select` tool to choose your version of Xcode at the command line, you may encounter the following error when running the install script:
 
 ```
@@ -22,7 +34,37 @@ If you have problems building any of the projects, take a look at the online [FA
 Introduction
 ==
 
-__What's New in 1.2__
+__What's New in 1.4__
+
+**Updated iOS SDK to Cordova 2.2**
+Make sure to update to the latest cordova.js and associated SDK JS plugin files when you upgrade.  These can either be taken from the repo, or from a newly-generated hybrid template app.
+
+**API Versioning**
+Cordova JavaScript libraries are now versioned to benefit hybrid apps that deploy multiple versions at the same time. 
+See “Versioning and Javascript Library Compatibility” in the “Introduction to Hybrid Development” chapter of the Mobile SDK Developer Guide. 
+
+**Reactive Session Management for Hybrid Apps** 
+Developers get more control over managing web sessions inside the hybrid container. Apps that previously relied on proactive session management will require some modification. Please upgrade with caution. (forcetk.js clients should not be affected.)
+
+**Passcode Reset**
+Added option for users to logout from the passcode screen
+
+**Miscellaneous**
+* SmartStore for native apps Xcode template
+* Mobile Components for Visualforce updated to provide session management
+
+__Version 1.3__
+
+**Cordova Library Updates**
+The Salesforce Hybrid SDK has updated its PhoneGap/Cordova support to Cordova 1.8.1.  All plugins and infrastructure have been updated to Cordova patterns.
+
+**Default SmartStore Encryption**
+If an app does not implement user passcodes, its SmartStore data will be protected with a default encryption scheme.
+
+**Better Offline Support for Authentication in Native Apps**
+Native apps can now function offline if the user has authenticated at some point.  Once the device comes back online, the app will reconnect with the user's existing credentials.  (Hybrid apps already have this capability.)
+
+__Version 1.2__
 
 **Connected Apps Pilot**
 * Apps implemented with the Mobile SDK will now respect Connected Apps policies.  Rules defined by administrators for PIN code protection and session timeout intervals will now be enforced by native and hybrid app implementations. (This feature requires the Connected Apps Pilot be turned on.)
@@ -99,6 +141,8 @@ You can also use the SDK in an existing project:
 	1. **SystemConfiguration.framework**
 	1. **Security.framework**
 	1. **libxml2.dylib**
+	1. **libsqlite3.dylib**
+	1. **libz.dylib**
 
 4. Import the SalesforceSDK header via ``#import "SFRestAPI.h"``.
 

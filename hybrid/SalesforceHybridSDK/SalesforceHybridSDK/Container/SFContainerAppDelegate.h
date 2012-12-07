@@ -24,13 +24,12 @@
  */
 
 #import <UIKit/UIKit.h>
-#import "PhoneGapDelegate.h"
 
-
-#import "SFOAuthCoordinator.h"
+#import "SFApplication.h"
 #import "SFLogger.h"
 
 @class SalesforceOAuthPlugin;
+@class SFHybridViewController;
 
 /**
  
@@ -69,23 +68,14 @@ extern NSString * const kSFOAuthPluginName;
  */
 extern NSString * const kSFSmartStorePluginName;
 
-@interface SFContainerAppDelegate : PhoneGapDelegate {
-    
-	NSString* invokeString;
+@interface SFContainerAppDelegate : NSObject <SFSDKAppDelegate> {
     SalesforceOAuthPlugin *_oauthPlugin;
-    BOOL _foundHomeUrl;
     BOOL _isAppStartup;
 }
 
 
-/**
- invoke string is passed to your app on launch, this is only valid if you 
- edit App.plist to add a protocol
- a simple tutorial can be found here : 
- http://iphonedevelopertips.com/cocoa/launching-your-own-application-via-a-custom-url-scheme.html
-*/
-@property (nonatomic, copy)  NSString *invokeString;
-
+@property (nonatomic, retain) UIWindow *window;
+@property (nonatomic, retain) SFHybridViewController *viewController;
 /**
  The User-Agent string presented by this application
  */
@@ -97,6 +87,16 @@ extern NSString * const kSFSmartStorePluginName;
  */
 @property (assign) SFLogLevel appLogLevel;
 
+/**
+ @return filename that needs to be loaded in the webview
+ */
++ (NSString *) startPage;
+
+/**
+ * Initializes the view controller for the app.  Override this method if you want to initialize your
+ * own class for `SFContainerAppDelegate.viewController`.
+ */
+- (void)configureHybridViewController;
 
 /**
  @return YES if this device is an iPad
@@ -115,13 +115,6 @@ extern NSString * const kSFSmartStorePluginName;
  * @param restartAuthentication Whether or not to restart authentication after the app is reset.
  */
 - (void)clearAppState:(BOOL)restartAuthentication;
-
-/**
- * Essentially a call to clearAppState:YES.  The pin code functionality requires a logout function
- * on the app, in the event of pin verification failure.
- */
-- (void)logout;
-
 
 /**
  The currently running app delegate
