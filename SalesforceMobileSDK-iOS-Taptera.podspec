@@ -1,11 +1,11 @@
 Pod::Spec.new do |s|
   s.name         = "SalesforceMobileSDK-iOS-Taptera"
-  s.version      = "1.0.3"
+  s.version      = "1.0.0"
   s.summary      = "Taptera version of Salesforce mobile SDK for iOS."
   s.homepage     = "https://github.com/Taptera/SalesforceMobileSDK-iOS.git"
   s.license      = 'Taptera'
   s.author       = { "Taptera" => "ios-devs@taptera.com" }
-  s.source       = { :git => "git@github.com:Taptera/SalesforceMobileSDK-iOS.git", :tag => "tv#{s.version}" }
+  s.source       = { :git => "git@github.com:Taptera/SalesforceMobileSDK-iOS.git", :tag => "cocoapods_ver#{s.version}" }
   s.platform     = :ios, '4.3'
 
   s.source_files = 'dist/SalesforceSDK/SalesforceSDK/include/SalesforceSDK/**/*.{h}'
@@ -19,6 +19,13 @@ Pod::Spec.new do |s|
     ss.library = 'SalesforceOAuth'
     ss.preserve_paths = './dist/SalesforceOAuth/SalesforceOAuth/Libraries/libSalesforceOAuth.a'
     s.xcconfig  =  { 'LIBRARY_SEARCH_PATHS' => '"$(PODS_ROOT)/SalesforceMobileSDK-iOS-Taptera/dist/SalesforceOAuth/SalesforceOAuth/Libraries"' }
+  end
+
+  s.subspec 'CommonUtils' do |ss|
+    ss.source_files = 'dist/SalesforceCommonUtils/SalesforceCommonUtils/Headers/*.{h}'
+    s.library = 'SalesforceCommonUtils'
+  s.preserve_paths = 'dist/SalesforceCommonUtils/SalesforceCommonUtils/Libraries/libSalesforceCommonUtils.a'
+  s.xcconfig  =  { 'LIBRARY_SEARCH_PATHS' => '"$(PODS_ROOT)/SalesforceMobileSDK-iOS-Taptera/dist/SalesforceCommonUtils/SalesforceCommonUtils/Libraries"' }
   end
 
   s.subspec 'PrivateHeaders' do |ss|
