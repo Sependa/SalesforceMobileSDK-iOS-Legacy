@@ -10,22 +10,22 @@ Pod::Spec.new do |s|
 
   s.source_files = 'dist/SalesforceSDK/SalesforceSDK/include/SalesforceSDK/**/*.{h}'
   s.library = 'SalesforceSDK'
-  s.preserve_paths = './dist/SalesforceSDK/SalesforceSDK/libSalesforceSDK.a'
+  s.preserve_paths = 'dist/SalesforceSDK/SalesforceSDK/libSalesforceSDK.a'
   s.xcconfig  =  { 'LIBRARY_SEARCH_PATHS' => '"$(PODS_ROOT)/SalesforceMobileSDK-iOS-Taptera/dist/SalesforceSDK/SalesforceSDK"' }
   s.dependency 'RestKit', '~> 0.10.2'
 
   s.subspec 'oAuth' do |ss|
     ss.source_files = 'dist/SalesforceOAuth/SalesforceOAuth/Headers/SalesforceOAuth/**/*.{h}'
     ss.library = 'SalesforceOAuth'
-    ss.preserve_paths = './dist/SalesforceOAuth/SalesforceOAuth/Libraries/libSalesforceOAuth.a'
-    s.xcconfig  =  { 'LIBRARY_SEARCH_PATHS' => '"$(PODS_ROOT)/SalesforceMobileSDK-iOS-Taptera/dist/SalesforceOAuth/SalesforceOAuth/Libraries"' }
+    ss.preserve_paths = 'dist/SalesforceOAuth/SalesforceOAuth/Libraries/libSalesforceOAuth.a'
+    ss.xcconfig  =  { 'LIBRARY_SEARCH_PATHS' => '"$(PODS_ROOT)/SalesforceMobileSDK-iOS-Taptera/dist/SalesforceOAuth/SalesforceOAuth/Libraries"' }
   end
 
   s.subspec 'CommonUtils' do |ss|
     ss.source_files = 'dist/SalesforceCommonUtils/SalesforceCommonUtils/Headers/*.{h}'
-    s.library = 'SalesforceCommonUtils'
-  s.preserve_paths = 'dist/SalesforceCommonUtils/SalesforceCommonUtils/Libraries/libSalesforceCommonUtils.a'
-  s.xcconfig  =  { 'LIBRARY_SEARCH_PATHS' => '"$(PODS_ROOT)/SalesforceMobileSDK-iOS-Taptera/dist/SalesforceCommonUtils/SalesforceCommonUtils/Libraries"' }
+    ss.library = 'SalesforceCommonUtils'
+    ss.preserve_paths = 'dist/SalesforceCommonUtils/SalesforceCommonUtils/Libraries/libSalesforceCommonUtils.a'
+    ss.xcconfig  =  { 'LIBRARY_SEARCH_PATHS' => '"$(PODS_ROOT)/SalesforceMobileSDK-iOS-Taptera/dist/SalesforceCommonUtils/SalesforceCommonUtils/Libraries"' }
   end
 
   s.subspec 'PrivateHeaders' do |ss|
