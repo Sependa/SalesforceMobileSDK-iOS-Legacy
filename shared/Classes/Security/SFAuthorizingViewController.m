@@ -30,9 +30,26 @@
 @synthesize oauthView = _oauthView;
 @synthesize authorizingMessageLabel = _authorizingMessageLabel;
 
+- (id)init {
+    self = [super init];
+    if (self) {
+        self.title = @"Authentication";
+        self.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel
+                                                                                              target:self
+                                                                                              action:@selector(didTapCancelButton:)] autorelease];
+    }
+    return self;
+}
+
 - (void)dealloc {
     self.oauthView = nil;
     [super dealloc];
+}
+
+#pragma mark - Actions
+
+- (void)didTapCancelButton:(id)sender {
+    [self dismissModalViewControllerAnimated:YES];
 }
 
 #pragma mark - View lifecycle
