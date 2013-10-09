@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "SalesforceMobileSDK-iOS-Taptera"
-  s.version      = "1.0.1"
+  s.version      = "1.0.2"
   s.summary      = "Taptera version of Salesforce mobile SDK for iOS."
   s.homepage     = "https://github.com/Taptera/SalesforceMobileSDK-iOS.git"
   s.license      = 'Taptera'

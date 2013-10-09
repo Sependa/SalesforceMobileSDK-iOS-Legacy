@@ -162,7 +162,11 @@
     
     if ((nil == error) &&
         ([self.request.delegate respondsToSelector:@selector(request:didLoadResponse:)])) {
-        [self.request.delegate request:_request didLoadResponse:jsonResponse];
+        if (nil == jsonResponse) {
+            [self.request.delegate request:_request didLoadResponse:response.body];
+        } else {
+            [self.request.delegate request:_request didLoadResponse:jsonResponse];
+        }
     }
     [[SFRestAPI sharedInstance] removeActiveRequestObject:self];
 }
